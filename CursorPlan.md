@@ -52,6 +52,22 @@ Adapter -> Metaflow Client API -> MetadataProvider -> DataStore
 
 This ensures we respect the existing abstraction layers, avoid coupling to the local storage layout, and remain compatible with future changes to the datastore format.
 
+## What you actually build
+
+### Backend
+
+- local adapter server
+- REST endpoints
+- websocket server
+- change detector
+- client api wrappers
+
+### Frontend
+
+- DAG visualization
+- run comparison UI
+- dark mode
+
 ---
 
 ## Adapter Architectural Boundaries
