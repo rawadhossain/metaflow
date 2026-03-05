@@ -1,0 +1,554 @@
+[
+  {
+    "captured_at_utc": "2026-03-04T09:10:14.516256+00:00",
+    "flow_name": "MetadataProbeFlow",
+    "run": {
+      "end_task_exists": false,
+      "finished": false,
+      "finished_at": null,
+      "successful": false
+    },
+    "run_id": "1772615394319701",
+    "steps": [
+      {
+        "finished_at": null,
+        "step_id": "branch",
+        "tasks": [
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "2"
+          },
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "3"
+          },
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "4"
+          }
+        ]
+      },
+      {
+        "finished_at": "2026-03-04T15:10:00.727000",
+        "step_id": "start",
+        "tasks": [
+          {
+            "attempt": "0",
+            "attempt_ok": "True",
+            "current_attempt": 0,
+            "finished": true,
+            "finished_at": "2026-03-04T15:10:00.727000",
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": true,
+            "task_id": "1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "captured_at_utc": "2026-03-04T09:10:16.572301+00:00",
+    "flow_name": "MetadataProbeFlow",
+    "run": {
+      "end_task_exists": false,
+      "finished": false,
+      "finished_at": null,
+      "successful": false
+    },
+    "run_id": "1772615394319701",
+    "steps": [
+      {
+        "finished_at": null,
+        "step_id": "branch",
+        "tasks": [
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "2"
+          },
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "3"
+          },
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "4"
+          }
+        ]
+      },
+      {
+        "finished_at": "2026-03-04T15:10:00.727000",
+        "step_id": "start",
+        "tasks": [
+          {
+            "attempt": "0",
+            "attempt_ok": "True",
+            "current_attempt": 0,
+            "finished": true,
+            "finished_at": "2026-03-04T15:10:00.727000",
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": true,
+            "task_id": "1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "captured_at_utc": "2026-03-04T09:10:18.618968+00:00",
+    "flow_name": "MetadataProbeFlow",
+    "run": {
+      "end_task_exists": false,
+      "finished": false,
+      "finished_at": null,
+      "successful": false
+    },
+    "run_id": "1772615394319701",
+    "steps": [
+      {
+        "finished_at": null,
+        "step_id": "branch",
+        "tasks": [
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "2"
+          },
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "3"
+          },
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "4"
+          }
+        ]
+      },
+      {
+        "finished_at": "2026-03-04T15:10:00.727000",
+        "step_id": "start",
+        "tasks": [
+          {
+            "attempt": "0",
+            "attempt_ok": "True",
+            "current_attempt": 0,
+            "finished": true,
+            "finished_at": "2026-03-04T15:10:00.727000",
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": true,
+            "task_id": "1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "captured_at_utc": "2026-03-04T09:10:20.665539+00:00",
+    "flow_name": "MetadataProbeFlow",
+    "run": {
+      "end_task_exists": false,
+      "finished": false,
+      "finished_at": null,
+      "successful": false
+    },
+    "run_id": "1772615394319701",
+    "steps": [
+      {
+        "finished_at": null,
+        "step_id": "branch",
+        "tasks": [
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "2"
+          },
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "3"
+          },
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "4"
+          }
+        ]
+      },
+      {
+        "finished_at": "2026-03-04T15:10:00.727000",
+        "step_id": "start",
+        "tasks": [
+          {
+            "attempt": "0",
+            "attempt_ok": "True",
+            "current_attempt": 0,
+            "finished": true,
+            "finished_at": "2026-03-04T15:10:00.727000",
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": true,
+            "task_id": "1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "captured_at_utc": "2026-03-04T09:10:22.712373+00:00",
+    "flow_name": "MetadataProbeFlow",
+    "run": {
+      "end_task_exists": false,
+      "finished": false,
+      "finished_at": null,
+      "successful": false
+    },
+    "run_id": "1772615394319701",
+    "steps": [
+      {
+        "finished_at": null,
+        "step_id": "branch",
+        "tasks": [
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "2"
+          },
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "3"
+          },
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "4"
+          }
+        ]
+      },
+      {
+        "finished_at": "2026-03-04T15:10:00.727000",
+        "step_id": "start",
+        "tasks": [
+          {
+            "attempt": "0",
+            "attempt_ok": "True",
+            "current_attempt": 0,
+            "finished": true,
+            "finished_at": "2026-03-04T15:10:00.727000",
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": true,
+            "task_id": "1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "captured_at_utc": "2026-03-04T09:10:24.758964+00:00",
+    "flow_name": "MetadataProbeFlow",
+    "run": {
+      "end_task_exists": false,
+      "finished": false,
+      "finished_at": null,
+      "successful": false
+    },
+    "run_id": "1772615394319701",
+    "steps": [
+      {
+        "finished_at": null,
+        "step_id": "branch",
+        "tasks": [
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "2"
+          },
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "3"
+          },
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "4"
+          }
+        ]
+      },
+      {
+        "finished_at": "2026-03-04T15:10:00.727000",
+        "step_id": "start",
+        "tasks": [
+          {
+            "attempt": "0",
+            "attempt_ok": "True",
+            "current_attempt": 0,
+            "finished": true,
+            "finished_at": "2026-03-04T15:10:00.727000",
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": true,
+            "task_id": "1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "captured_at_utc": "2026-03-04T09:10:26.808084+00:00",
+    "flow_name": "MetadataProbeFlow",
+    "run": {
+      "end_task_exists": false,
+      "finished": false,
+      "finished_at": null,
+      "successful": false
+    },
+    "run_id": "1772615394319701",
+    "steps": [
+      {
+        "finished_at": null,
+        "step_id": "branch",
+        "tasks": [
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "2"
+          },
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "3"
+          },
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "4"
+          }
+        ]
+      },
+      {
+        "finished_at": "2026-03-04T15:10:00.727000",
+        "step_id": "start",
+        "tasks": [
+          {
+            "attempt": "0",
+            "attempt_ok": "True",
+            "current_attempt": 0,
+            "finished": true,
+            "finished_at": "2026-03-04T15:10:00.727000",
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": true,
+            "task_id": "1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "captured_at_utc": "2026-03-04T09:10:28.905458+00:00",
+    "flow_name": "MetadataProbeFlow",
+    "run": {
+      "end_task_exists": false,
+      "finished": false,
+      "finished_at": null,
+      "successful": false
+    },
+    "run_id": "1772615394319701",
+    "steps": [
+      {
+        "finished_at": null,
+        "step_id": "branch",
+        "tasks": [
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "2"
+          },
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "3"
+          },
+          {
+            "attempt": "0",
+            "attempt_ok": null,
+            "current_attempt": 0,
+            "finished": false,
+            "finished_at": null,
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": false,
+            "task_id": "4"
+          }
+        ]
+      },
+      {
+        "finished_at": "2026-03-04T15:10:00.727000",
+        "step_id": "start",
+        "tasks": [
+          {
+            "attempt": "0",
+            "attempt_ok": "True",
+            "current_attempt": 0,
+            "finished": true,
+            "finished_at": "2026-03-04T15:10:00.727000",
+            "origin_run_id": "None",
+            "origin_task_id": null,
+            "successful": true,
+            "task_id": "1"
+          }
+        ]
+      }
+    ]
+  }
+]
