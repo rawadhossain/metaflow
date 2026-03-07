@@ -48,7 +48,7 @@ from .debug import debug
 from .decorators import flow_decorators
 from .flowspec import FlowStateItems
 from .mflog import mflog, RUNTIME_LOG_SOURCE
-from .util import to_unicode, compress_list, unicode_type, get_latest_task_pathspec
+from .util import dict_to_cli_args, compress_list, unicode_type, get_latest_task_pathspec
 from .clone_util import clone_task_helper
 from .unbounded_foreach import (
     CONTROL_TASK_TAG,
@@ -2132,33 +2132,12 @@ class CLIArgs(object):
         self.env = {}
 
     def get_args(self):
-        # TODO: Make one with dict_to_cli_options; see cli_args.py for more detail
-        def _options(mapping):
-            for k, v in mapping.items():
-                # None or False arguments are ignored
-                # v needs to be explicitly False, not falsy, e.g. 0 is an acceptable value
-                if v is None or v is False:
-                    continue
-
-                # we need special handling for 'with' since it is a reserved
-                # keyword in Python, so we call it 'decospecs' in click args
-                if k == "decospecs":
-                    k = "with"
-                k = k.replace("_", "-")
-                v = v if isinstance(v, (list, tuple, set)) else [v]
-                for value in v:
-                    yield "--%s" % k
-                    if not isinstance(value, bool):
-                        value = value if isinstance(value, tuple) else (value,)
-                        for vv in value:
-                            yield to_unicode(vv)
-
         args = list(self.entrypoint)
-        args.extend(_options(self.top_level_options))
+        args.extend(dict_to_cli_args(self.top_level_options, skip_local_config_file=False))
         args.extend(self.commands)
         args.extend(self.command_args)
 
-        args.extend(_options(self.command_options))
+        args.extend(dict_to_cli_args(self.command_options, skip_local_config_file=False))
         return args
 
     def get_env(self):

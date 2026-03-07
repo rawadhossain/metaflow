@@ -456,6 +456,39 @@ def dict_to_cli_options(params):
                         # Otherwise, assume it is a literal value and quote it safely
                         yield _quote(value)
 
+def dict_to_cli_args(params, skip_local_config_file=False):
+    from .user_configs.config_options import ConfigInput
+
+    for k, v in params.items():
+        # Ignore None / False values. 0 is valid and should not be skipped
+        if v is None or v is False:
+            continue
+
+        # Since 'with' is a Python keyword, we call it 'decospecs' in click args.
+        if k == "decospecs":
+            k = "with"
+
+        if k in ("config", "config_value"):
+            # config options are passed as repeated --config-value arguments
+            for config_name in v.keys():
+                yield "--config-value"
+                yield to_unicode(config_name)
+                yield to_unicode(ConfigInput.make_key_name(config_name))
+            continue
+
+        if k == "local_config_file" and skip_local_config_file:
+            continue
+
+        k = k.replace("_", "-")
+        values = v if isinstance(v, (list, tuple, set)) else [v]
+        for value in values:
+            yield "--%s" % k
+            if not isinstance(value, bool):
+                if isinstance(value, tuple):
+                    for tuple_value in value:
+                        yield to_unicode(tuple_value)
+                else:
+                    yield to_unicode(value)
 
 # This function is imported from https://github.com/cookiecutter/whichcraft
 def which(cmd, mode=os.F_OK | os.X_OK, path=None):
