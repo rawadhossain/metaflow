@@ -238,6 +238,8 @@ class Decorator(object):
 
 class FlowDecorator(Decorator):
     options = {}
+    # Optional options that can be attached to run/resume CLI commands.
+    run_options = {}
 
     def __init__(self, *args, **kwargs):
         super(FlowDecorator, self).__init__(*args, **kwargs)
@@ -292,6 +294,54 @@ def add_decorator_options(cmd):
                 cmd.params.insert(0, click.Option(("--" + option,), **kwargs))
     return cmd
 
+
+def add_run_decorator_options(cmd):
+    """
+    Add flow decorator-defined run options to run/resume commands.
+
+    This mirrors add_decorator_options but targets command-level option decorators
+    (functions before they are converted to Click commands).
+    """
+    flow_cls = getattr(current_flow, "flow_cls", None)
+    if flow_cls is None:
+        return cmd
+
+    seen = {}
+    existing_params = set(
+        p.name.lower() for p in getattr(cmd, "__click_params__", []) if p.name
+    )
+    for deco in flow_decorators(flow_cls):
+        run_options = getattr(deco, "run_options", None) or {}
+        for option, kwargs in run_options.items():
+            normalized_option = option.lstrip("-")
+            if not normalized_option:
+                raise MetaflowInternalError(
+                    "Flow decorator '%s' defines an invalid run option name '%s'."
+                    % (deco.name, option)
+                )
+            normalized_param = normalized_option.replace("-", "_").lower()
+
+            if normalized_param in seen:
+                msg = (
+                    "Flow decorator '%s' uses a run option '%s' which is also "
+                    "used by the decorator '%s'. This is a bug in Metaflow. "
+                    "Please file a ticket on GitHub."
+                    % (deco.name, option, seen[normalized_param])
+                )
+                raise MetaflowInternalError(msg)
+            if normalized_param in existing_params:
+                raise MetaflowInternalError(
+                    "Flow decorator '%s' uses a run option '%s' which is a reserved "
+                    "keyword. Please use a different option name." % (deco.name, option)
+                )
+            option_kwargs = dict(kwargs)
+            option_kwargs["envvar"] = "METAFLOW_RUN_%s" % normalized_option.replace(
+                "-", "_"
+            ).upper()
+            seen[normalized_param] = deco.name
+            cmd = click.option("--" + normalized_option, **option_kwargs)(cmd)
+            existing_params.add(normalized_param)
+    return cmd
 
 def flow_decorators(flow_cls):
     return [

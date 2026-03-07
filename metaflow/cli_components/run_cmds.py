@@ -179,7 +179,7 @@ def common_run_options(func):
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
 
-    return wrapper
+    return decorators.add_run_decorator_options(wrapper)
 
 
 @click.option(
@@ -236,6 +236,7 @@ def resume(
     run_id_file=None,
     resume_identifier=None,
     runner_attribute_file=None,
+    **kwargs,
 ):
     before_run(obj, tags, decospecs)
 
