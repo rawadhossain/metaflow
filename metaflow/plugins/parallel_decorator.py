@@ -2,7 +2,6 @@ from collections import namedtuple
 from metaflow.decorators import StepDecorator
 from metaflow.unbounded_foreach import UBF_CONTROL, CONTROL_TASK_TAG
 from metaflow.exception import MetaflowException
-from metaflow.metadata_provider import MetaDatum
 from metaflow.metaflow_current import current, Parallel
 import os
 import sys
@@ -111,14 +110,7 @@ class ParallelDecorator(StepDecorator):
         )
 
         self.input_paths = [obj.pathspec for obj in inputs]
-        task_metadata_list = [
-            MetaDatum(
-                field="parallel-world-size",
-                value=flow._parallel_ubf_iter.num_parallel,
-                type="parallel-world-size",
-                tags=["attempt_id:{0}".format(0)],
-            )
-        ]
+        meta = {"parallel-world-size": flow._parallel_ubf_iter.num_parallel}
         if ubf_context == UBF_CONTROL:
             # A Task's tags are now those of its ancestral Run, so we are not able
             # to rely on a task's tags to indicate the presence of a control task
@@ -129,17 +121,10 @@ class ParallelDecorator(StepDecorator):
             # task". Within the metaflow repo, the only dependency of such a
             # "control task" indicator is in the integration test suite (see
             # Step.control_tasks() in client API).
-            task_metadata_list += [
-                MetaDatum(
-                    field="internal_task_type",
-                    value=CONTROL_TASK_TAG,
-                    type="internal_task_type",
-                    tags=["attempt_id:{0}".format(0)],
-                )
-            ]
+            meta["internal_task_type"] = CONTROL_TASK_TAG
             flow._control_task_is_mapper_zero = True
 
-        metadata.register_metadata(run_id, step_name, task_id, task_metadata_list)
+        self._register_metadata(metadata, run_id, step_name, task_id, meta, 0)
 
     def task_decorate(
         self, step_func, flow, graph, retry_count, max_user_code_retries, ubf_context
