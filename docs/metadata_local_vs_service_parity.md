@@ -1,5 +1,7 @@
 # Local vs Service Metadata Parity Investigation
 
+**TL;DR**: No semantic mismatches were found; both backends report lifecycle signals consistently. No code changes are needed. Two follow-up areas are worth noting: service polling latency in the dev stack, and interruption semantics (mid-run termination behavior).
+
 ## Issue
 
 Investigate the issue **"Compare differences in local metadata vs metadata service"** by running the same flow under:
@@ -11,7 +13,7 @@ and evaluating whether user-visible lifecycle semantics are consistent across ba
 
 ## Investigation
 
-This investigation focuses on **user-visible lifecycle semantics**, not byte-level equality of raw metadata records across independent runs. Differences in identifiers, timestamp values, and event ordering can occur between local and service executions without implying a semantic mismatch. The goal is to verify whether both backends provide sufficient signals to reliably infer:
+This investigation focuses on **user-visible lifecycle semantics**. The framing is simple: we care whether an observer can make the same lifecycle inference from either backend, not whether raw records are byte-for-byte identical across independent runs. Differences in identifiers, timestamp values, and event ordering can occur without implying a semantic mismatch. The goal is to verify whether both backends provide sufficient signals to reliably infer:
 
 - run completion
 - run success/failure
@@ -27,7 +29,9 @@ This investigation focuses on **user-visible lifecycle semantics**, not byte-lev
   - a controlled failure path (to verify failure visibility and terminal state)
   - a retry probe (to verify retry metadata and attempt transitions)
   - fanout/foreach branches (to ensure multi-task step behavior is represented)
-  - sleep windows (to make in-flight polling practical and reproducible)
+  - sleep windows (to make in-flight polling practical; runs must stay in intermediate states long enough for the collector to capture snapshots)
+  - `post_join` as the failure injection point (it exercises the failure path after the join step while leaving the end step unexecuted, which is the key case for failure semantics)
+  - the retry probe as part of the baseline scenario rather than a separate run (to reduce scenario count while still validating retry metadata and attempt transitions)
 - `collect_metadata_snapshots.py`: periodically captures run/step/task lifecycle state from the client view, producing JSON timelines that can be compared across backends.
 - `compare_metadata_snapshots.py`: generates text comparisons from the collected snapshots to highlight signal matches and differences.
 
@@ -47,6 +51,7 @@ Together, these tools make the investigation reproducible and easy to extend for
   - local: `local_snapshots_midkill.json`
   - service: `service_snapshots_midkill.json`
   - **Why this scenario**: probes behavior around interrupted execution to see whether lifecycle signals remain interpretable when the launcher process is terminated.
+  - **How executed**: The launcher process was killed (e.g., via Ctrl+C or SIGTERM) while the run was in progress; workers were not targeted.
 
 These scenarios were selected to cover the primary issue questions: completion detection, success/failure interpretation, task terminal state visibility, and retry handling.
 
@@ -75,6 +80,7 @@ The comparison emphasizes **semantic parity** (can an observer infer the same li
 | `terminal task lifecycle signals` | Consistent at lifecycle level       | Consistent at lifecycle level        | Task identifiers differ across runs/backends                 |
 | Retry behavior                    | Visible and successful in both      | Visible before failure path in both  | Branch retry probe observed in both backends                 |
 
+**Mid-run termination**: The midkill scenario was executed and snapshots were collected; both backends showed in flight state at termination (e.g., `run.finished` not yet set). Because this scenario is inherently time sensitive and captures partial state at process kill, a more systematic follow-up is warranted to confirm parity and interpretation of interruption semantics.
 
 ## Example comparison output
 
@@ -100,6 +106,19 @@ Running `compare_metadata_snapshots.py` on the collected JSON snapshots produces
 
 These results show that run-level lifecycle signals matched across local and service in both success and failure scenarios, which is the primary parity target for this investigation.
 
+The task-level section of the same report will typically look like this:
+
+```text
+## Task-Level (final snapshot)
+
+- DIFF `branch/1234567890`: missing in service snapshot
+- DIFF `branch/42`: missing in local snapshot
+- DIFF `join/1234567891`: missing in service snapshot
+- DIFF `end/1234567892`: missing in service snapshot
+```
+
+Task-level diffs like these are expected because local and service runs use different task IDs; see the "Why task-level DIFF lines can appear without semantic mismatch" section below for why this is not a correctness concern.
+
 ## Timing and snapshot ordering observations
 
 - Requested polling interval was 2 seconds.
@@ -112,6 +131,7 @@ These results show that run-level lifecycle signals matched across local and ser
 Interpretation:
 
 - Service-backed client polling in this dev setup was noticeably slower than local.
+- The ~12s average cadence vs ~2s requested is a roughly 6x difference; this could affect time-sensitive monitoring in production setups and is worth a dedicated follow-up.
 - This affects **when** states are observed, not the terminal semantics observed in tested scenarios.
 - Because snapshots are taken at observation time, slower polling can also change which intermediate task states appear in the final collected timeline.
 
