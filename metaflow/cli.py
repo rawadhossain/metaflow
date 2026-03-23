@@ -228,6 +228,22 @@ def version(obj):
     echo_always(obj.version)
 
 
+def _run_cli_lifecycle_hooks(phase, ctx):
+    """
+    Invoke optional CLI lifecycle hooks exposed by top-level plugins.
+    """
+    for plugin_name, plugin in plugins.TL_PLUGINS.items():
+        cli_init = getattr(plugin, "cli_init", None)
+        if not callable(cli_init):
+            continue
+        try:
+            cli_init(phase, ctx)
+        except Exception as ex:
+            raise CommandException(
+                "Top-level plugin '%s' failed during CLI phase '%s': %s"
+                % (plugin_name, phase, ex)
+            )
+
 # NOTE: add_decorator_options should be TL because it checks to make sure
 # that no option conflict with the ones below
 @decorators.add_decorator_options
@@ -396,6 +412,7 @@ def start(
     ctx.obj.datastore_impl.datastore_root = datastore_root
 
     FlowDataStore.default_storage_impl = ctx.obj.datastore_impl
+    _run_cli_lifecycle_hooks("post_datastore", ctx)
 
     # At this point, we are able to resolve the user-configuration options so we can
     # process all those decorators that the user added that will modify the flow based
@@ -499,6 +516,7 @@ def start(
     ctx.obj.metadata = [m for m in METADATA_PROVIDERS if m.TYPE == metadata][0](
         ctx.obj.environment, ctx.obj.flow, ctx.obj.event_logger, ctx.obj.monitor
     )
+    _run_cli_lifecycle_hooks("post_metadata", ctx)
 
     ctx.obj.flow_datastore = FlowDataStore(
         ctx.obj.flow.name,
@@ -577,6 +595,7 @@ def start(
         ctx.obj.is_spin,
         ctx.obj.skip_decorators,
     )
+    _run_cli_lifecycle_hooks("post_decorators", ctx)
 
     # In the case of run/resume/spin, we will want to apply the TL decospecs
     # *after* the run decospecs so that they don't take precedence. In other
@@ -645,6 +664,8 @@ def start(
 
         # TODO (savin): Enable lazy instantiation of package
         ctx.obj.package = None
+
+    _run_cli_lifecycle_hooks("post_start", ctx)
 
     if ctx.invoked_subcommand is None:
         ctx.invoke(check)
