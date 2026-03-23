@@ -19,8 +19,7 @@
 #    executes locally and therefore needs the local_config_file but the other (remote)
 #    commands do not.
 
-from .user_configs.config_options import ConfigInput
-from .util import to_unicode
+from .util import dict_to_cli_args
 
 
 class CLIArgs(object):
@@ -61,33 +60,7 @@ class CLIArgs(object):
 
     @staticmethod
     def _options(mapping):
-        for k, v in mapping.items():
-
-            # None or False arguments are ignored
-            # v needs to be explicitly False, not falsy, e.g. 0 is an acceptable value
-            if v is None or v is False:
-                continue
-
-            # we need special handling for 'with' since it is a reserved
-            # keyword in Python, so we call it 'decospecs' in click args
-            if k == "decospecs":
-                k = "with"
-            if k in ("config", "config_value"):
-                # Special handling here since we gather them all in one option but actually
-                # need to send them one at a time using --config-value <name> kv.<name>.
-                # Note it can be either config or config_value depending
-                # on click processing order.
-                for config_name in v.keys():
-                    yield "--config-value"
-                    yield to_unicode(config_name)
-                    yield to_unicode(ConfigInput.make_key_name(config_name))
-                continue
-            k = k.replace("_", "-")
-            v = v if isinstance(v, (list, tuple, set)) else [v]
-            for value in v:
-                yield "--%s" % k
-                if not isinstance(value, bool):
-                    yield to_unicode(value)
+        yield from dict_to_cli_args(mapping, skip_local_config_file=False)
 
 
 cli_args = CLIArgs()
