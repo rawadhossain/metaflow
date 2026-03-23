@@ -5,7 +5,6 @@ import sys
 import tempfile
 
 from metaflow.decorators import FlowDecorator, StepDecorator
-from metaflow.metadata_provider import MetaDatum
 from metaflow.metaflow_environment import InvalidEnvironmentException
 from metaflow.packaging_sys import ContentType
 
@@ -229,18 +228,13 @@ class CondaStepDecorator(StepDecorator):
             r"(?:.*\/)(metaflow\/[^/]+\/[^/]+)(?=\/bin\/python)", sys.executable
         )
         if match:
-            meta.register_metadata(
+            self._register_metadata(
+                meta,
                 run_id,
                 step_name,
                 task_id,
-                [
-                    MetaDatum(
-                        field="conda_env_prefix",
-                        value=match.group(1),
-                        type="conda_env_prefix",
-                        tags=["attempt_id:{0}".format(retry_count)],
-                    )
-                ],
+                {"conda_env_prefix": match.group(1)},
+                retry_count,
             )
 
     def runtime_step_cli(
