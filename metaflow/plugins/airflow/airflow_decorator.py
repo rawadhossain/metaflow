@@ -46,7 +46,17 @@ class AirflowInternalDecorator(StepDecorator):
         self._register_metadata(metadata, run_id, step_name, task_id, meta, retry_count)
 
     def task_finished(
-        self, step_name, flow, graph, is_task_ok, retry_count, max_user_code_retries
+        self,
+        step_name,
+        flow,
+        graph,
+        is_task_ok,
+        retry_count,
+        max_user_code_retries,
+        metadata=None,
+        task_datastore=None,
+        run_id=None,
+        task_id=None,
     ):
         # This will pass the xcom when the task finishes.
         xcom_values = {

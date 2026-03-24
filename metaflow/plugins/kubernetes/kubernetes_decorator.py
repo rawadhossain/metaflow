@@ -594,7 +594,17 @@ class KubernetesDecorator(StepDecorator):
         )
 
     def task_finished(
-        self, step_name, flow, graph, is_task_ok, retry_count, max_retries
+        self,
+        step_name,
+        flow,
+        graph,
+        is_task_ok,
+        retry_count,
+        max_retries,
+        metadata=None,
+        task_datastore=None,
+        run_id=None,
+        task_id=None,
     ):
         # task_finished may run locally if fallback is activated for @catch
         # decorator.
@@ -604,12 +614,9 @@ class KubernetesDecorator(StepDecorator):
             # local file system after the user code has finished execution.
             # This happens via datastore as a communication bridge.
 
-            # TODO:  There is no guarantee that task_pre_step executes before
-            #        task_finished is invoked.
-            # For now we guard against the missing metadata object in this case.
-            if hasattr(self, "metadata") and self.metadata.TYPE == "local":
+            if metadata.TYPE == "local":
                 self._sync_local_metadata_from_datastore(
-                    self.metadata, self.task_datastore, DATASTORE_LOCAL_DIR
+                    metadata, task_datastore, DATASTORE_LOCAL_DIR
                 )
 
         try:

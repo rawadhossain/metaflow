@@ -363,7 +363,17 @@ class BatchDecorator(StepDecorator):
         self._register_metadata(metadata, run_id, step_name, task_id, meta, retry_count)
 
     def task_finished(
-        self, step_name, flow, graph, is_task_ok, retry_count, max_retries
+        self,
+        step_name,
+        flow,
+        graph,
+        is_task_ok,
+        retry_count,
+        max_retries,
+        metadata=None,
+        task_datastore=None,
+        run_id=None,
+        task_id=None,
     ):
         # task_finished may run locally if fallback is activated for @catch
         # decorator.
@@ -372,9 +382,9 @@ class BatchDecorator(StepDecorator):
             # execution metadata from the AWS Batch container to user's
             # local file system after the user code has finished execution.
             # This happens via datastore as a communication bridge.
-            if hasattr(self, "metadata") and self.metadata.TYPE == "local":
+            if metadata.TYPE == "local":
                 self._sync_local_metadata_from_datastore(
-                    self.metadata, self.task_datastore, DATASTORE_LOCAL_DIR
+                    metadata, task_datastore, DATASTORE_LOCAL_DIR
                 )
 
         try:

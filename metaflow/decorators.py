@@ -330,7 +330,8 @@ class StepDecorator(Decorator):
                   step.__name__ etc., so that we don't have to
                   pass them around with every lifecycle call.
     """
-    ORDER_PRIORITY = 0
+    
+    DEPENDS_ON = [] 
 
     def step_init(
         self, flow, graph, step_name, decorators, environment, flow_datastore, logger
@@ -468,7 +469,17 @@ class StepDecorator(Decorator):
         pass
 
     def task_finished(
-        self, step_name, flow, graph, is_task_ok, retry_count, max_user_code_retries
+        self,
+        step_name,
+        flow,
+        graph,
+        is_task_ok,
+        retry_count,
+        max_user_code_retries,
+        metadata=None,
+        task_datastore=None,
+        run_id=None,
+        task_id=None,
     ):
         """
         Run after the task context has been finalized.
@@ -982,13 +993,58 @@ def _process_late_attached_decorator(
 
 
 def _sort_step_decorators(step):
-    step.decorators = [
-        deco
-        for _, deco in sorted(
-            enumerate(step.decorators),
-            key=lambda item: (getattr(item[1], "ORDER_PRIORITY", 0), item[0]),
+    decorators = list(step.decorators)
+    num_decorators = len(decorators)
+    if num_decorators < 2:
+        return
+
+    # Build name -> indices to resolve DEPENDS_ON by decorator.name.
+    name_to_indices = {}
+    for idx, deco in enumerate(decorators):
+        name_to_indices.setdefault(deco.name, []).append(idx)
+
+    # Build DAG: provider -> dependent
+    # Edge A -> B means B depends on A.
+    adjacency = [set() for _ in range(num_decorators)]
+    indegree = [0] * num_decorators
+
+    for dependent_idx, deco in enumerate(decorators):
+        depends_on = getattr(deco, "DEPENDS_ON", None) or []
+        if isinstance(depends_on, str):
+            depends_on = [depends_on]
+
+        for dep_name in depends_on:
+            for provider_idx in name_to_indices.get(dep_name, []):
+                if provider_idx == dependent_idx:
+                    continue
+                if dependent_idx not in adjacency[provider_idx]:
+                    adjacency[provider_idx].add(dependent_idx)
+                    indegree[dependent_idx] += 1
+
+    # Kahn's algorithm: among zero indegree nodes, pick the earliest in original order.
+    import heapq
+
+    queue = [idx for idx, degree in enumerate(indegree) if degree == 0]
+    heapq.heapify(queue)
+
+    sorted_indices = []
+    while queue:
+        current = heapq.heappop(queue)
+        sorted_indices.append(current)
+        for nxt in adjacency[current]:
+            indegree[nxt] -= 1
+            if indegree[nxt] == 0:
+                heapq.heappush(queue, nxt)
+
+    if len(sorted_indices) != num_decorators:
+        cycle_indices = [idx for idx, degree in enumerate(indegree) if degree > 0]
+        cycle_names = ", ".join(decorators[idx].name for idx in cycle_indices)
+        raise MetaflowException(
+            "Circular dependency detected among decorators: %s. This cannot be resolved."
+            % cycle_names
         )
-    ]
+
+    step.decorators = [decorators[idx] for idx in sorted_indices]
 
 
 FlowSpecDerived = TypeVar("FlowSpecDerived", bound=FlowSpec)

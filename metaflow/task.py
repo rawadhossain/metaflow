@@ -995,6 +995,10 @@ class MetaflowTask(object):
                         self.flow._task_ok,
                         retry_count,
                         max_user_code_retries,
+                        metadata=self.metadata,
+                        task_datastore=output,
+                        run_id=run_id,
+                        task_id=task_id,
                     )
 
                 # terminate side cars
