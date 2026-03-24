@@ -1,8 +1,6 @@
 import json
 import os
 from metaflow.decorators import StepDecorator
-from metaflow.metadata_provider import MetaDatum
-
 from .airflow_utils import (
     TASK_ID_XCOM_KEY,
     FOREACH_CARDINALITY_XCOM_KEY,
@@ -44,18 +42,21 @@ class AirflowInternalDecorator(StepDecorator):
         meta = {}
         meta["airflow-dag-run-id"] = os.environ["METAFLOW_AIRFLOW_DAG_RUN_ID"]
         meta["airflow-job-id"] = os.environ["METAFLOW_AIRFLOW_JOB_ID"]
-        entries = [
-            MetaDatum(
-                field=k, value=v, type=k, tags=["attempt_id:{0}".format(retry_count)]
-            )
-            for k, v in meta.items()
-        ]
-
         # Register book-keeping metadata for debugging.
-        metadata.register_metadata(run_id, step_name, task_id, entries)
+        self._register_metadata(metadata, run_id, step_name, task_id, meta, retry_count)
 
     def task_finished(
-        self, step_name, flow, graph, is_task_ok, retry_count, max_user_code_retries
+        self,
+        step_name,
+        flow,
+        graph,
+        is_task_ok,
+        retry_count,
+        max_user_code_retries,
+        metadata=None,
+        task_datastore=None,
+        run_id=None,
+        task_id=None,
     ):
         # This will pass the xcom when the task finishes.
         xcom_values = {

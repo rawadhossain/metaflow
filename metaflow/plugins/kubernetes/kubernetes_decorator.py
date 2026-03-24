@@ -7,8 +7,6 @@ import time
 from metaflow import current
 from metaflow.decorators import StepDecorator
 from metaflow.exception import MetaflowException
-from metaflow.metadata_provider import MetaDatum
-from metaflow.metadata_provider.util import sync_local_metadata_to_datastore
 from metaflow.metaflow_config import (
     DATASTORE_LOCAL_DIR,
     FEAT_ALWAYS_UPLOAD_CODE_PACKAGE,
@@ -35,7 +33,6 @@ from metaflow.metaflow_config import (
 )
 from metaflow.plugins.resources_decorator import ResourcesDecorator
 from metaflow.plugins.timeout_decorator import get_run_time_limit_for_task
-from metaflow.sidecar import Sidecar
 from metaflow.unbounded_foreach import UBF_CONTROL
 
 from ..aws.aws_utils import get_docker_registry, get_ec2_instance_metadata
@@ -475,9 +472,7 @@ class KubernetesDecorator(StepDecorator):
             # to execute on Kubernetes anymore. We can execute possible fallback
             # code locally.
             cli_args.commands = ["kubernetes", "step"]
-            cli_args.command_args.append(self.package_metadata)
-            cli_args.command_args.append(self.package_sha)
-            cli_args.command_args.append(self.package_url)
+            self._append_package_metadata_to_cli(cli_args)
 
             # skip certain keys as CLI arguments
             _skip_keys = ["compute_pool", "hostname_resolution_timeout"]
@@ -570,16 +565,7 @@ class KubernetesDecorator(StepDecorator):
             #         "METAFLOW_KUBERNETES_POD_NAME"
             #     ].rpartition("-")[0]
 
-            # Start MFLog sidecar to collect task logs.
-            self._save_logs_sidecar = Sidecar("save_logs_periodically")
-            self._save_logs_sidecar.start()
-
-            # Start spot termination monitor sidecar.
-            current._update_env(
-                {"spot_termination_notice": "/tmp/spot_termination_notice"}
-            )
-            self._spot_monitor_sidecar = Sidecar("spot_termination_monitor")
-            self._spot_monitor_sidecar.start()
+            self._start_log_and_spot_sidecars()
 
         num_parallel = None
         if hasattr(flow, "_parallel_ubf_iter"):
@@ -602,22 +588,23 @@ class KubernetesDecorator(StepDecorator):
                 ]
                 flow._control_task_is_mapper_zero = True
 
-        if len(meta) > 0:
-            entries = [
-                MetaDatum(
-                    field=k,
-                    value=v,
-                    type=k,
-                    tags=["attempt_id:{0}".format(retry_count)],
-                )
-                for k, v in meta.items()
-                if v is not None
-            ]
-            # Register book-keeping metadata for debugging.
-            metadata.register_metadata(run_id, step_name, task_id, entries)
+        # Register book-keeping metadata for debugging.
+        self._register_metadata(
+            metadata, run_id, step_name, task_id, meta, retry_count, skip_none=True
+        )
 
     def task_finished(
-        self, step_name, flow, graph, is_task_ok, retry_count, max_retries
+        self,
+        step_name,
+        flow,
+        graph,
+        is_task_ok,
+        retry_count,
+        max_retries,
+        metadata=None,
+        task_datastore=None,
+        run_id=None,
+        task_id=None,
     ):
         # task_finished may run locally if fallback is activated for @catch
         # decorator.
@@ -627,19 +614,13 @@ class KubernetesDecorator(StepDecorator):
             # local file system after the user code has finished execution.
             # This happens via datastore as a communication bridge.
 
-            # TODO:  There is no guarantee that task_pre_step executes before
-            #        task_finished is invoked.
-            # For now we guard against the missing metadata object in this case.
-            if hasattr(self, "metadata") and self.metadata.TYPE == "local":
-                # Note that the datastore is *always* Amazon S3 (see
-                # runtime_task_created function).
-                sync_local_metadata_to_datastore(
-                    DATASTORE_LOCAL_DIR, self.task_datastore
+            if metadata.TYPE == "local":
+                self._sync_local_metadata_from_datastore(
+                    metadata, task_datastore, DATASTORE_LOCAL_DIR
                 )
 
         try:
-            self._save_logs_sidecar.terminate()
-            self._spot_monitor_sidecar.terminate()
+            self._terminate_sidecars("_save_logs_sidecar", "_spot_monitor_sidecar")
         except Exception:
             # Best effort kill
             pass

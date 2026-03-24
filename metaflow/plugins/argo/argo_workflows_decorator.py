@@ -5,7 +5,6 @@ import os
 from metaflow import current
 from metaflow.decorators import StepDecorator
 from metaflow.events import Trigger
-from metaflow.metadata_provider import MetaDatum
 from metaflow.graph import FlowGraph
 from metaflow.flowspec import FlowSpec
 from .argo_events import ArgoEvent
@@ -30,9 +29,6 @@ class ArgoWorkflowsInternalDecorator(StepDecorator):
         ubf_context,
         inputs,
     ):
-        self.task_id = task_id
-        self.run_id = run_id
-
         triggers = []
         # Expose event triggering metadata through current singleton
         for key, payload in os.environ.items():
@@ -73,14 +69,8 @@ class ArgoWorkflowsInternalDecorator(StepDecorator):
         meta["argo-workflow-namespace"] = os.environ["ARGO_WORKFLOW_NAMESPACE"]
         meta["auto-emit-argo-events"] = self.attributes["auto-emit-argo-events"]
         meta["argo-workflow-template-owner"] = os.environ["METAFLOW_OWNER"]
-        entries = [
-            MetaDatum(
-                field=k, value=v, type=k, tags=["attempt_id:{0}".format(retry_count)]
-            )
-            for k, v in meta.items()
-        ]
         # Register book-keeping metadata for debugging.
-        metadata.register_metadata(run_id, step_name, task_id, entries)
+        self._register_metadata(metadata, run_id, step_name, task_id, meta, retry_count)
 
     def task_finished(
         self,
@@ -90,6 +80,10 @@ class ArgoWorkflowsInternalDecorator(StepDecorator):
         is_task_ok,
         retry_count,
         max_user_code_retries,
+        metadata=None,
+        task_datastore=None,
+        run_id=None,
+        task_id=None,
     ):
         if not is_task_ok:
             # The task finished with an exception - execution won't
@@ -140,7 +134,7 @@ class ArgoWorkflowsInternalDecorator(StepDecorator):
             # are not static across retries. We write the task-id to a file that is read
             # by the next task here.
             with open("/mnt/out/task_id", "w") as file:
-                file.write(self.task_id)
+                file.write(task_id)
 
         # Emit Argo Events given that the flow has succeeded. Given that we only
         # emit events when the task succeeds, we can piggy back on this decorator
@@ -162,9 +156,9 @@ class ArgoWorkflowsInternalDecorator(StepDecorator):
             event.add_to_payload("id", current.pathspec)
             event.add_to_payload("pathspec", current.pathspec)
             event.add_to_payload("flow_name", flow.name)
-            event.add_to_payload("run_id", self.run_id)
+            event.add_to_payload("run_id", run_id)
             event.add_to_payload("step_name", step_name)
-            event.add_to_payload("task_id", self.task_id)
+            event.add_to_payload("task_id", task_id)
             # Add @project decorator related fields. These are used to subset
             # @trigger_on_finish related filters.
             for key in (

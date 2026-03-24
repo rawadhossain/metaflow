@@ -5,8 +5,6 @@ import time
 
 from metaflow import R, current
 from metaflow.decorators import StepDecorator
-from metaflow.metadata_provider import MetaDatum
-from metaflow.metadata_provider.util import sync_local_metadata_to_datastore
 from metaflow.metaflow_config import (
     BATCH_CONTAINER_IMAGE,
     BATCH_CONTAINER_REGISTRY,
@@ -18,7 +16,6 @@ from metaflow.metaflow_config import (
     FEAT_ALWAYS_UPLOAD_CODE_PACKAGE,
 )
 from metaflow.plugins.timeout_decorator import get_run_time_limit_for_task
-from metaflow.sidecar import Sidecar
 from metaflow.unbounded_foreach import UBF_CONTROL
 
 from ..aws_utils import (
@@ -265,9 +262,7 @@ class BatchDecorator(StepDecorator):
             # to execute on AWS Batch anymore. We can execute possible fallback
             # code locally.
             cli_args.commands = ["batch", "step"]
-            cli_args.command_args.append(self.package_metadata)
-            cli_args.command_args.append(self.package_sha)
-            cli_args.command_args.append(self.package_url)
+            self._append_package_metadata_to_cli(cli_args)
             # skip certain keys as CLI arguments
             _skip_keys = ["aws_batch_tags"]
             cli_args.command_options.update(
@@ -342,15 +337,7 @@ class BatchDecorator(StepDecorator):
             instance_meta = get_ec2_instance_metadata()
             meta.update(instance_meta)
 
-            self._save_logs_sidecar = Sidecar("save_logs_periodically")
-            self._save_logs_sidecar.start()
-
-            # Start spot termination monitor sidecar.
-            current._update_env(
-                {"spot_termination_notice": "/tmp/spot_termination_notice"}
-            )
-            self._spot_monitor_sidecar = Sidecar("spot_termination_monitor")
-            self._spot_monitor_sidecar.start()
+            self._start_log_and_spot_sidecars()
 
         num_parallel = int(os.environ.get("AWS_BATCH_JOB_NUM_NODES", 0))
         if num_parallel >= 1 and ubf_context == UBF_CONTROL:
@@ -372,21 +359,21 @@ class BatchDecorator(StepDecorator):
             # current.parallel.node_index will be correctly available over here.
             meta.update({"parallel-node-index": current.parallel.node_index})
 
-        if len(meta) > 0:
-            entries = [
-                MetaDatum(
-                    field=k,
-                    value=v,
-                    type=k,
-                    tags=["attempt_id:{0}".format(retry_count)],
-                )
-                for k, v in meta.items()
-            ]
-            # Register book-keeping metadata for debugging.
-            metadata.register_metadata(run_id, step_name, task_id, entries)
+        # Register book-keeping metadata for debugging.
+        self._register_metadata(metadata, run_id, step_name, task_id, meta, retry_count)
 
     def task_finished(
-        self, step_name, flow, graph, is_task_ok, retry_count, max_retries
+        self,
+        step_name,
+        flow,
+        graph,
+        is_task_ok,
+        retry_count,
+        max_retries,
+        metadata=None,
+        task_datastore=None,
+        run_id=None,
+        task_id=None,
     ):
         # task_finished may run locally if fallback is activated for @catch
         # decorator.
@@ -395,16 +382,13 @@ class BatchDecorator(StepDecorator):
             # execution metadata from the AWS Batch container to user's
             # local file system after the user code has finished execution.
             # This happens via datastore as a communication bridge.
-            if hasattr(self, "metadata") and self.metadata.TYPE == "local":
-                # Note that the datastore is *always* Amazon S3 (see
-                # runtime_task_created function).
-                sync_local_metadata_to_datastore(
-                    DATASTORE_LOCAL_DIR, self.task_datastore
+            if metadata.TYPE == "local":
+                self._sync_local_metadata_from_datastore(
+                    metadata, task_datastore, DATASTORE_LOCAL_DIR
                 )
 
         try:
-            self._save_logs_sidecar.terminate()
-            self._spot_monitor_sidecar.terminate()
+            self._terminate_sidecars("_save_logs_sidecar", "_spot_monitor_sidecar")
         except Exception:
             # Best effort kill
             pass

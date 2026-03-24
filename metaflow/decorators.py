@@ -330,6 +330,8 @@ class StepDecorator(Decorator):
                   step.__name__ etc., so that we don't have to
                   pass them around with every lifecycle call.
     """
+    
+    DEPENDS_ON = [] 
 
     def step_init(
         self, flow, graph, step_name, decorators, environment, flow_datastore, logger
@@ -467,7 +469,17 @@ class StepDecorator(Decorator):
         pass
 
     def task_finished(
-        self, step_name, flow, graph, is_task_ok, retry_count, max_user_code_retries
+        self,
+        step_name,
+        flow,
+        graph,
+        is_task_ok,
+        retry_count,
+        max_user_code_retries,
+        metadata=None,
+        task_datastore=None,
+        run_id=None,
+        task_id=None,
     ):
         """
         Run after the task context has been finalized.
@@ -483,6 +495,59 @@ class StepDecorator(Decorator):
         """
         pass
 
+    def _register_metadata(
+        self,
+        metadata,
+        run_id,
+        step_name,
+        task_id,
+        meta_dict,
+        retry_count,
+        skip_none=False,
+    ):
+        from metaflow.metadata_provider import MetaDatum
+
+        entries = [
+            MetaDatum(
+                field=k,
+                value=v,
+                type=k,
+                tags=["attempt_id:{0}".format(retry_count)],
+            )
+            for k, v in meta_dict.items()
+            if (v is not None or not skip_none)
+        ]
+        if entries:
+            metadata.register_metadata(run_id, step_name, task_id, entries)
+
+    def _append_package_metadata_to_cli(self, cli_args):
+        cli_args.command_args.append(self.package_metadata)
+        cli_args.command_args.append(self.package_sha)
+        cli_args.command_args.append(self.package_url)
+
+    def _sync_local_metadata_from_datastore(
+        self, metadata, task_datastore, datastore_local_dir
+    ):
+        if metadata.TYPE == "local":
+            from metaflow.metadata_provider.util import sync_local_metadata_to_datastore
+
+            sync_local_metadata_to_datastore(datastore_local_dir, task_datastore)
+
+    def _start_log_and_spot_sidecars(self):
+        from metaflow import current
+        from metaflow.sidecar import Sidecar
+
+        self._save_logs_sidecar = Sidecar("save_logs_periodically")
+        self._save_logs_sidecar.start()
+        current._update_env({"spot_termination_notice": "/tmp/spot_termination_notice"})
+        self._spot_monitor_sidecar = Sidecar("spot_termination_monitor")
+        self._spot_monitor_sidecar.start()
+
+    def _terminate_sidecars(self, *sidecar_attrs):
+        for sidecar_attr in sidecar_attrs:
+            sidecar = getattr(self, sidecar_attr, None)
+            if sidecar is not None:
+                sidecar.terminate()
 
 def _base_flow_decorator(decofunc, *args, **kwargs):
     """
@@ -874,6 +939,7 @@ def _init_step_decorators(
     graph = flow._graph
 
     for step in flow:
+        _sort_step_decorators(step)
         for deco in step.decorators:
             if _should_skip_decorator_for_spin(
                 deco, is_spin, skip_decorators, logger, "Step decorator"
@@ -907,6 +973,8 @@ def _process_late_attached_decorator(
                 deco.external_init()
 
     for s in flow:
+        if any(deco.name in deco_names for deco in s.decorators):
+            _sort_step_decorators(s)
         for deco in s.decorators:
             if deco.name in deco_names:
                 if _should_skip_decorator_for_spin(
@@ -922,6 +990,61 @@ def _process_late_attached_decorator(
                     flow_datastore,
                     logger,
                 )
+
+
+def _sort_step_decorators(step):
+    decorators = list(step.decorators)
+    num_decorators = len(decorators)
+    if num_decorators < 2:
+        return
+
+    # Build name -> indices to resolve DEPENDS_ON by decorator.name.
+    name_to_indices = {}
+    for idx, deco in enumerate(decorators):
+        name_to_indices.setdefault(deco.name, []).append(idx)
+
+    # Build DAG: provider -> dependent
+    # Edge A -> B means B depends on A.
+    adjacency = [set() for _ in range(num_decorators)]
+    indegree = [0] * num_decorators
+
+    for dependent_idx, deco in enumerate(decorators):
+        depends_on = getattr(deco, "DEPENDS_ON", None) or []
+        if isinstance(depends_on, str):
+            depends_on = [depends_on]
+
+        for dep_name in depends_on:
+            for provider_idx in name_to_indices.get(dep_name, []):
+                if provider_idx == dependent_idx:
+                    continue
+                if dependent_idx not in adjacency[provider_idx]:
+                    adjacency[provider_idx].add(dependent_idx)
+                    indegree[dependent_idx] += 1
+
+    # Kahn's algorithm: among zero indegree nodes, pick the earliest in original order.
+    import heapq
+
+    queue = [idx for idx, degree in enumerate(indegree) if degree == 0]
+    heapq.heapify(queue)
+
+    sorted_indices = []
+    while queue:
+        current = heapq.heappop(queue)
+        sorted_indices.append(current)
+        for nxt in adjacency[current]:
+            indegree[nxt] -= 1
+            if indegree[nxt] == 0:
+                heapq.heappush(queue, nxt)
+
+    if len(sorted_indices) != num_decorators:
+        cycle_indices = [idx for idx, degree in enumerate(indegree) if degree > 0]
+        cycle_names = ", ".join(decorators[idx].name for idx in cycle_indices)
+        raise MetaflowException(
+            "Circular dependency detected among decorators: %s. This cannot be resolved."
+            % cycle_names
+        )
+
+    step.decorators = [decorators[idx] for idx in sorted_indices]
 
 
 FlowSpecDerived = TypeVar("FlowSpecDerived", bound=FlowSpec)

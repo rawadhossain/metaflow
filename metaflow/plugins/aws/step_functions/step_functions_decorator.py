@@ -2,10 +2,7 @@ import os
 import time
 
 from metaflow.decorators import StepDecorator
-from metaflow.metadata_provider import MetaDatum
-
 from .dynamo_db_client import DynamoDbClient
-
 
 class StepFunctionsInternalDecorator(StepDecorator):
     name = "step_functions_internal"
@@ -27,17 +24,21 @@ class StepFunctionsInternalDecorator(StepDecorator):
         meta = {}
         meta["aws-step-functions-execution"] = os.environ["METAFLOW_RUN_ID"]
         meta["aws-step-functions-state-machine"] = os.environ["SFN_STATE_MACHINE"]
-        entries = [
-            MetaDatum(
-                field=k, value=v, type=k, tags=["attempt_id:{0}".format(retry_count)]
-            )
-            for k, v in meta.items()
-        ]
         # Register book-keeping metadata for debugging.
-        metadata.register_metadata(run_id, step_name, task_id, entries)
+        self._register_metadata(metadata, run_id, step_name, task_id, meta, retry_count)
 
     def task_finished(
-        self, step_name, flow, graph, is_task_ok, retry_count, max_user_code_retries
+        self,
+        step_name,
+        flow,
+        graph,
+        is_task_ok,
+        retry_count,
+        max_user_code_retries,
+        metadata=None,
+        task_datastore=None,
+        run_id=None,
+        task_id=None,
     ):
         if not is_task_ok:
             # The task finished with an exception - execution won't

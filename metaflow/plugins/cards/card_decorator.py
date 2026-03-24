@@ -312,7 +312,17 @@ class CardDecorator(StepDecorator):
             current.card._finalize()
 
     def task_finished(
-        self, step_name, flow, graph, is_task_ok, retry_count, max_user_code_retries
+        self,
+        step_name,
+        flow,
+        graph,
+        is_task_ok,
+        retry_count,
+        max_user_code_retries,
+        metadata=None,
+        task_datastore=None,
+        run_id=None,
+        task_id=None,
     ):
         create_options = dict(
             card_uuid=self._card_uuid,
